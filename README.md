@@ -1,5 +1,5 @@
-# ChrysalisCam
-Programmatically generate tiny timelapse videos using a Pi and a webcam, then fling those videos into the DropBox cloud.
+# TimelapseBoogaloo
+Take a photo every two minutes, fling the photos into the DropBox cloud, then programatically generate a timelapse video.
 This is a guide to making automated timelapse videos using a Raspberry Pi and a webcam. This project incorporates [Andrea Fabrizi's Dropbox-Uploader](https://github.com/andreafabrizi/Dropbox-Uploader), and is a spiritual successor to/cribs instructional format & some wordage from [Nicole He's Grow_Slow](https://github.com/nicolehe/grow_slow), without whom it probably wouldn't exist.
 
 This project is appropriate for people who have done very little coding.
@@ -13,6 +13,7 @@ This set of instructions are particularly suited to the following scenarios:
 * multiple people would like instant access to the programmatically generated videos, but it's not appropriate for said people to all have SSH access to the Pi
 * you don't want to broadcast the results on something like Twitter
 * you DO want to broadcast the results on Twitter but you would also like cloud backup of your files
+* you want the flexiblity of retaining your original image files for future GIFs and timelapse videos
 
 Obviously you can mix and match to take what you need from it!
 
@@ -45,97 +46,59 @@ If you don't get the correct date and time stamp back, enter:
 
 Follow the instructions to set your timezone, and confirm it by entering `date` again.
 
-## 3. Set up image capture and video pipeline
+## 3. Set up the webcam
 
-We'll be loosely following [these instructions](https://www.raspberrypi.org/forums/viewtopic.php?t=72435/). We need to capture still images, and then render those images into a video file.
+In order to get the webcam working with the Pi, we're going to install a package called `fswebcam`:
 
-First we have to install the streamer module via Terminal:
+`sudo apt-get install fswebcam`
 
-`sudo apt-get install streamer`
+With the USB camera plugged in, we can very easily take photos via the command line:
 
-Second, we'll install gstreamer module with so that we can render the final video using the Raspberry Pi's GPU.
+`fswebcam test.jpg`
 
-`sudo apt-get install gstreamer1.0-tools`
-
-Check the installation to make sure it has the codecs you need:
-
-`gst-inspect-1.0 | grep x264enc`
-
-`gst-inspect-1.0 | grep mp4mux`
-
-`gst-inspect-1.0 | grep jpegdec`
-
-You should see the tools above listed.
+Now, if you click on File Manager, you'll see that in your /home/pi directory, you have a file called test.jpg
 
 ## 4. Make your file directory
 
 Let's keep things neat and tidy by creating a file directory just for this project. You can call your files and folders whatever you like, but it's extremely important to match directory names and case across all of your code, so keep that in mind when your create your file structure.
 
-`mkdir /home/pi/timelapse`
+`mkdir /home/pi/boogaloo`
 
-`mkdir /home/pi/timelapse/images`
+`mkdir /home/pi/boogaloo/images`
 
-`mkdir /home/pi/timelapse/videos`
+`mkdir /home/pi/boogaloo/videos`
 
-Great! Now let's go hang out in our new timelapse folder and run some tests:
+Great! Now let's go hang out in our new folder:
 
-`cd /home/pi/timelapse/`
+`cd /home/pi/boogaloo/`
 
 Your Terminal should now look something like this:
 
-`pi@raspberrypi:~/timelapse $`
+`pi@raspberrypi:~/boogaloo $`
 
-## 5. Test: Capture your images and programmatically create a video
+## 5. Python that Chrys
 
-We're going to run a quick test to make sure our modules work:
+Save the [chrys.py](/chrys.py) file above to your Pi in /home/pi/timelapse. Alternatively, you can open up the Raw and then paste those into your own self-created file by using the Terminal and typing:
 
-`streamer -t 20 -r 0.4 -s 1280x720 -o /images/timelapse0000.jpeg`
+`nano chrys.py`
 
-* -t 20 = the number of frames you want to capture
-* -r 0.4 = frame rate (0.4 fps or 2.5 seconds/frame)
-* -s 1280x720 = resolution
+It looks like this:
+`import sys
+import time
+import os
 
-Hit enter. The camera should immediately capture a set of 20 images in /home/pi/timelapse/images.
-
-Time to encode these into a video!
-
-`gst-launch-1.0 multifilesrc location=/images/timelapse%04d.jpeg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/timelapse/videos/timelapse.mp4`
-
-The video should be created immediately - only 20 images means this will happen very fast. We'll guard against data corruption by adding in:
-
-`sync`
-
-A few things to keep in mind:
-
-* jpegdec decodes our JPEG images. Note that there's no difference between a JPG and a JPEG, but the pipeline will not work if the two extensions don't match. If all your images are .jpg instead of .jpeg, you must change every reference to JPEG to JPG in the pipeline code above.
-* Fun fact: every JPG image is built in 8x8 bit blocks. Not so fun fact: if any of your images have been cropped or saved in a non-standard resolution that is not divisible by 8, the pipeline will not work. 1280x720 works great. 1270x720 does not.
-* We've asked the pipeline for a video that is compressed with a .264 codec - x264enc - and specified an MP4 container with MP4mux. MP4 works great with most services, including the Twitter API, which is why we're using it. You could change the code above to ask for an AVI file instead by changing your codecs and muxers like so:
-
-`gst-launch-1.0 multifilesrc location=timelapse%04d.jpeg index=1 caps="image/jpeg,framerate=24/1" ! jpegdec ! omxh264enc ! avimux ! filesink location=timelapse.avi`
+os.system (“fswebcam -d/dev/video0 -r 1280x960 -S 20 -l 120 --no-banner /home/pi/timelapse2/frames/Chrys-%Y-%m-%d--%H-%M-%S.jpeg”)
+`
+Some things to note:
+* -S 20 tells the webcam to capture and discard 20 frames – this helps it adjust to light levels. You can edit the script to change this number
+* -l 120 (that’s a lowercase L ) tells the webcam to take a photo every 120 seconds, on a loop. The Pi gets a little fussy if this happens more frequently. The loop will tell the script to keep on taking a photo, forever. It's going to be a lot of photos.
 
 ## 6. Dropbox-Uploader
 Did you know that Raspberry Pis use an ARM processor? They do! Did you know that DropBox clients only support x86-based computers and not ARM-based ones? Alas, it's true. Luckily some enterprising individuals have created beautiful code that we can use to access the DropBox API on the Raspberry Pi.
 
-Visit [this page](https://github.com/andreafabrizi/Dropbox-Uploader) for the Dropbox Uploader BASH script. This is where you'll need a Dropbox developer account. Follow the instructions and then come back! Make sure the dropbox_uploader.sh script is either copied into your project folder and/or that you use an absolute file path in our autodropbox.py script in step 8.
+Visit [this page](https://github.com/andreafabrizi/Dropbox-Uploader) for the Dropbox Uploader BASH script. This is where you'll need a Dropbox developer account. Follow the instructions and then come back! Make sure the dropbox_uploader.sh script is either copied into your project folder and/or that you use an absolute file path in our autodropbox.py script in the next step.
 
-## 7. SH that Chrys
-
-Save the [chrys.sh](/chrys.sh) file above to your Pi in /home/pi/timelapse. Alternatively, you can open up the Raw and then paste those into your own self-created file by using the Terminal and typing:
-
-`nano chrys.sh`
-
- `#!/bin/bash
-/usr/bin/streamer -t 100 -r 0.4 -s 1280x720 -o /home/pi/timelapse/images/timelapse0000.jpeg &&
-/usr/bin/gst-launch-1.0 multifilesrc location=/images/timelapse%04d.jpeg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/home/pi/timelapse/video/$(date +%m%d_%H%M%S).mp4
-sync`
-
- chrys.sh will capture 100 images and dump them in /home/pi/timelapse/images, then create an MP4 from those images and save it in /home/pi/timelapse/video with a datestamped filename. Each time the script runs, the images will be overwritten - only the video will remain.
-
-A few notes:
-* We use && to tell the program to successfully finish taking the images BEFORE it moves on to the video pipeline.
-* We're using absolute file paths here for both streamer and gst-launch-1.0
-
- ## 8. Python that DropBox
+ ## 7. Python that DropBox
 
  Save the [autodropbox.py](/autodropbox.py) file above to your Pi in /home/pi/timelapse. Alternatively, you can open up the Raw and paste those into your own self-created file by using the Terminal and typing:
 
@@ -145,7 +108,8 @@ autodropbox.py will use the paths you define in the file to fling any new video 
 
 See how we're referencing /dropbox_uploader.sh in autodropbox.py? That's a relative file path, which means it assumes that it will be in the same folder as your autodropbox.py script. Make it so OR change the script above to use an absolute path to the dropbox_uploader.sh location.
 
-## 9. Automate the heck out of it
+
+## 8. Automate the heck out of it
 
 Here comes our friend cron!
 
@@ -168,15 +132,15 @@ This is the structure of the crontab:
 # └───────────────────────── min (0 - 59)
 ```
 
-We're going to add a line for the BASH and for python:
+We're going to add a line for both our scripts:
 
-`10 */4 * * * /bin/sh /home/pi/chrys.sh`
+`10 */4 * * * /bin/sh /home/pi/boogaloo/chrys.py`
 
-`30 */4 * * * /usr/bin/py /home/pi/autodropbox.py`
+`30 */4 * * * /usr/bin/py /home/pi/boogaloo/autodropbox.py`
 
 Our BASH will run at 10 minutes past, every four hours; our Dropbox script will run at 30 minutes past, every four hours.
 
-###Optional but recommended: set a reboot
+### Optional but recommended: set a reboot
 
 Sometimes, things can get messed up if your Pi is just constantly running forever. Also, some USB cameras have weird compatibility issues that are solved with a simple reboot. I recommend that you add another simple script that reboots your Pi once a day before your script runs so that things are always fresh, as they say.
 
@@ -194,11 +158,52 @@ Hit ctrl + x to save and quit. Now, open up your crontab again with `crontab -e`
 
 This sets it to reboot at 10:00 am every morning.
 
+### Optional but recommended: auto-delete old files
 
-## 10. Here comes trouble
+Listen, the Pi does not have that much space. This isn't a big deal if you're planning to take a short timelapse, but if you're thinking of a project that will stretch on for weeks without your intervention, it's just easier to auto-delete old images that have already been uploaded to the cloud.
+
+Add this line to your crontab:
+
+
+## 9. Prepare yourself for videos
+
+All right, you have several thousand beautiful images and you want them to be a timelapse video. Open up your Terminal.
+
+First we have to make sure that our images match our pipeline paramaters. This is what we'll be using:
+
+`gst-launch-1.0 multifilesrc location=/boogaloo/finalcountdown/boogaloo%01d.jpeg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/boogaloo/timelapse.mp4`
+
+A couple things to keep in mind:
+
+* jpegdec decodes our JPEG images. Note that there's no difference between a JPG and a JPEG, but the pipeline will not work if the two extensions don't match. If all your images are .jpg instead of .jpeg, you must change every reference from JPEG to JPG in the pipeline code above.
+* Fun fact: every JPG image is built in 8x8 bit blocks. Not so fun fact: if any of your images have been cropped or saved in a non-standard resolution that is not divisible by 8, the pipeline will not work. 1280x720 works great. 1270x720 does not.
+
+Let's swing back around to file names. Do your image filenames match your pipeline code? No? Let's do a quick cleanup to make our lives easier. Collect all your images together in a single folder. If you still want a timestamped version, keep a copy of the originals somewhere else. Open up terminal and navigate to your desired folder full of images:
+
+`cd /home/pi/boogaloo/finalcountdown`
+
+Paste this line into the Terminal:
+
+`awk 'BEGIN { for (i=1; i<ARGC; i++) system("mv -v " ARGV[i] " " i ".jpg")}' *.jpg`
+
+This will rename all images in our /finalcountdown folder to a sequential number, starting with 1.jpg.
+
+## 10. Make a video!
+
+Your images all have beautiful sequential names. Time to use Terminal to programmatically turn them into a timelapse video! 
+
+`gst-launch-1.0 multifilesrc location=/boogaloo/finalcountdown/boogaloo%01d.jpeg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/boogaloo/timelapse.mp4`
+
+We've asked the pipeline for a video that is compressed with a .264 codec - x264enc - and specified an MP4 container with MP4mux. MP4 works great with most services, including the Twitter API, which is why we're using it. You could change the code above to ask for an AVI file instead by changing your codecs and muxers like so:
+
+`gst-launch-1.0 multifilesrc location=timelapse%04d.jpeg index=1 caps="image/jpeg,framerate=24/1" ! jpegdec ! omxh264enc ! avimux ! filesink location=timelapse.avi`
+
+Depending on how many images you've got, this could take a while.
+
+## 11. Here comes trouble
 
 Possible issues you might run into:
 * Folder, user, or cron permission errors. Are you using sudo when you should?
 * Absolute vs. relative file paths. Check that you're in the right directory and that your paths match exactly, including case!
 * Cron uses a different environment than the Terminal. It doesn't know the same things, so sometimes you have to alert it to the locations of things like /usr/bin/python to run a script successfully.
-* Streamer fails to "finish" with the USB camera, which means every other time, your BASH cron job will trigger but not actually do anything. *I know.* I don't have a fix for that. [This Stack Overflow suggestion](https://stackoverflow.com/questions/46253564/recording-usb-cam-on-raspberry-pi-with-ffmpeg-usb-troubleshooting) temporarily solved my webcam issues, but only for streamer and not with fswebcam. Your mileage may vary!
+* fswebcam fails to "finish" with the USB camera, which means every other time, your cron job will trigger but not actually do anything. *I know.* I don't have a fix for that. [This Stack Overflow suggestion](https://stackoverflow.com/questions/46253564/recording-usb-cam-on-raspberry-pi-with-ffmpeg-usb-troubleshooting) temporarily solved my webcam issues, but only for streamer and not with fswebcam. Your mileage may vary!
