@@ -82,13 +82,10 @@ Save the [chrys.py](/chrys.py) file above to your Pi in /home/pi/timelapse. Alte
 
 `nano chrys.py`
 
-It looks like this:
-`import sys
-import time
-import os
+It includes this line:
 
-os.system (“fswebcam -d/dev/video0 -r 1280x960 -S 20 -l 120 --no-banner /home/pi/timelapse2/frames/Chrys-%Y-%m-%d--%H-%M-%S.jpeg”)
-`
+`fswebcam -d/dev/video0 -r 1280x960 -S 20 -l 120 --no-banner /home/pi/timelapse2/frames/Chrys-%Y-%m-%d--%H-%M-%S.jpeg`
+
 Some things to note:
 * -S 20 tells the webcam to capture and discard 20 frames – this helps it adjust to light levels. You can edit the script to change this number
 * -l 120 (that’s a lowercase L ) tells the webcam to take a photo every 120 seconds, on a loop. The Pi gets a little fussy if this happens more frequently. The loop will tell the script to keep on taking a photo, forever. It's going to be a lot of photos.
@@ -105,6 +102,8 @@ Visit [this page](https://github.com/andreafabrizi/Dropbox-Uploader) for the Dro
  `nano autodropbox.py`
 
 autodropbox.py will use the paths you define in the file to fling any new video files into the cloud.
+ 
+ `./dropbox_uploader.sh -s upload /home/pi/timelapse/video/ .`
 
 See how we're referencing /dropbox_uploader.sh in autodropbox.py? That's a relative file path, which means it assumes that it will be in the same folder as your autodropbox.py script. Make it so OR change the script above to use an absolute path to the dropbox_uploader.sh location.
 
