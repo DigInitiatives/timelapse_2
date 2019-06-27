@@ -66,8 +66,6 @@ Let's keep things neat and tidy by creating a file directory just for this proje
 
 `mkdir /home/pi/boogaloo/images`
 
-`mkdir /home/pi/boogaloo/videos`
-
 Great! Now let's go hang out in our new folder:
 
 `cd /home/pi/boogaloo/`
@@ -101,9 +99,9 @@ Visit [this page](https://github.com/andreafabrizi/Dropbox-Uploader) for the Dro
 
  `nano autodropbox.py`
 
-autodropbox.py will use the paths you define in the file to fling any new video files into the cloud.
+autodropbox.py will use the paths you define in the file to fling any new images into the cloud.
  
- `./dropbox_uploader.sh -s upload /home/pi/timelapse/video/ .`
+ `./dropbox_uploader.sh -s upload /home/pi/boogaloo/images/ .`
 
 See how we're referencing /dropbox_uploader.sh in autodropbox.py? That's a relative file path, which means it assumes that it will be in the same folder as your autodropbox.py script. Make it so OR change the script above to use an absolute path to the dropbox_uploader.sh location.
 
