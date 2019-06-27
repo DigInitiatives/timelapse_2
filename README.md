@@ -131,11 +131,11 @@ This is the structure of the crontab:
 
 We're going to add a line for both our scripts:
 
-`10 */4 * * * /bin/sh /home/pi/boogaloo/chrys.py`
+`@reboot usr/bin/py /home/pi/boogaloo/chrys.py`
 
 `30 */4 * * * /usr/bin/py /home/pi/boogaloo/autodropbox.py`
 
-Our BASH will run at 10 minutes past, every four hours; our Dropbox script will run at 30 minutes past, every four hours.
+Our chrys.py script will start up on reboot and run until someone manually stops it; our Dropbox script will run at 30 minutes past, every four hours.
 
 ### Optional but recommended: set a reboot
 
@@ -172,7 +172,7 @@ First we have to make sure that our images match our pipeline paramaters. This i
 
 A couple things to keep in mind:
 
-* jpegdec decodes our JPEG images. Note that there's no difference between a JPG and a JPEG, but the pipeline will not work if the two extensions don't match. If all your images are .jpg instead of .jpeg, you must change every reference from JPEG to JPG in the pipeline code above.
+* jpegdec decodes our JPEG images. Note that there's no difference between a JPG and a JPEG, but the pipeline will not work if the two extensions don't match. If all your images are .jpg instead of .jpeg, you must change the filename reference from JPEG to JPG in the pipeline code above.
 * Fun fact: every JPG image is built in 8x8 bit blocks. Not so fun fact: if any of your images have been cropped or saved in a non-standard resolution that is not divisible by 8, the pipeline will not work. 1280x720 works great. 1270x720 does not.
 
 Let's swing back around to file names. Do your image filenames match your pipeline code? No? Let's do a quick cleanup to make our lives easier. Collect all your images together in a single folder. If you still want a timestamped version, keep a copy of the originals somewhere else. Open up terminal and navigate to your desired folder full of images:
@@ -183,19 +183,21 @@ Paste this line into the Terminal:
 
 `awk 'BEGIN { for (i=1; i<ARGC; i++) system("mv -v " ARGV[i] " " i ".jpg")}' *.jpg`
 
-This will rename all images in our /finalcountdown folder to a sequential number, starting with 1.jpg.
+This will rename all images in our /finalcountdown folder to a sequential number, starting with 1.jpg. Because we're starting with 1.jpg instead of 0001.jpg, swap out %04d for %01d.
 
 ## 10. Make a video!
 
 Your images all have beautiful sequential names. Time to use Terminal to programmatically turn them into a timelapse video! 
 
-`gst-launch-1.0 multifilesrc location=/boogaloo/finalcountdown/boogaloo%01d.jpeg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/boogaloo/timelapse.mp4`
+`gst-launch-1.0 multifilesrc location=/boogaloo/finalcountdown/boogaloo%01d.jpg index=1 caps=“image/jpeg,framerate=24/1” ! jpegdec ! x264enc ! mp4mux ! filesink location=/boogaloo/timelapse.mp4`
 
 We've asked the pipeline for a video that is compressed with a .264 codec - x264enc - and specified an MP4 container with MP4mux. MP4 works great with most services, including the Twitter API, which is why we're using it. You could change the code above to ask for an AVI file instead by changing your codecs and muxers like so:
 
-`gst-launch-1.0 multifilesrc location=timelapse%04d.jpeg index=1 caps="image/jpeg,framerate=24/1" ! jpegdec ! omxh264enc ! avimux ! filesink location=timelapse.avi`
+`gst-launch-1.0 multifilesrc location=timelapse%04d.jpg index=1 caps="image/jpeg,framerate=24/1" ! jpegdec ! omxh264enc ! avimux ! filesink location=timelapse.avi`
 
-Depending on how many images you've got, this could take a while.
+Depending on how many images you've got, this could take a while. We'll guard against data corruption by adding in:
+
+`sync`
 
 ## 11. Here comes trouble
 
