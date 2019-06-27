@@ -46,7 +46,7 @@ If you don't get the correct date and time stamp back, enter:
 
 Follow the instructions to set your timezone, and confirm it by entering `date` again.
 
-## 3. Set up the webcam
+## 3. Set up the webcam and pipeline
 
 In order to get the webcam working with the Pi, we're going to install a package called `fswebcam`:
 
@@ -57,6 +57,20 @@ With the USB camera plugged in, we can very easily take photos via the command l
 `fswebcam test.jpg`
 
 Now, if you click on File Manager, you'll see that in your /home/pi directory, you have a file called test.jpg
+
+Second, we'll install gstreamer module with so that we can eventually render the final video using the Raspberry Pi's GPU.
+
+`sudo apt-get install gstreamer1.0-tools`
+
+Check the installation to make sure it has the codecs you need:
+
+`gst-inspect-1.0 | grep x264enc`
+
+`gst-inspect-1.0 | grep mp4mux`
+
+`gst-inspect-1.0 | grep jpegdec`
+
+You should see the tools above listed.
 
 ## 4. Make your file directory
 
