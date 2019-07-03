@@ -175,6 +175,9 @@ Listen, the Pi does not have that much space. This isn't a big deal if you're pl
 
 Add this line to your crontab:
 
+`5 */12 * * * /usr/bin/find /home/pi/boogaloo/images/* -mtime +0 -exec rm {} \;`
+
+At 5 minutes past, every twelve hours, everything located in /boogaloo/images and below that is older than one day will be removed. Edit this line as necessary to fit your own personal auto-delete needs.
 
 ## 9. Prepare yourself for videos
 
