@@ -145,9 +145,9 @@ This is the structure of the crontab:
 
 We're going to add a line for both our scripts:
 
-`@reboot usr/bin/py /home/pi/boogaloo/chrys.py`
+`@reboot usr/bin/python /home/pi/boogaloo/chrys.py`
 
-`30 */4 * * * /usr/bin/py /home/pi/boogaloo/autodropbox.py`
+`30 */4 * * * /usr/bin/python /home/pi/boogaloo/autodropbox.py`
 
 Our chrys.py script will start up on reboot and run until someone manually stops it; our Dropbox script will run at 30 minutes past, every four hours.
 
