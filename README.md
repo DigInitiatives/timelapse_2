@@ -1,4 +1,4 @@
-# TimelapseBoogaloo
+# Timelapse 2: Revenge of the Timelapse
 Take a photo every two minutes, fling the photos into the DropBox cloud, then programatically generate a timelapse video.
 This is a guide to making automated timelapse videos using a Raspberry Pi and a webcam. This project incorporates [Andrea Fabrizi's Dropbox-Uploader](https://github.com/andreafabrizi/Dropbox-Uploader), and is a spiritual successor to/cribs instructional format & some wordage from [Nicole He's Grow_Slow](https://github.com/nicolehe/grow_slow), without whom it probably wouldn't exist.
 
